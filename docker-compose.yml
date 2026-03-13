@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: recoflow-db
+    environment:
+      POSTGRES_DB: recoflow
+      POSTGRES_USER: recoflow
+      POSTGRES_PASSWORD: recoflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recoflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: recoflow-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/recoflow
+      SPRING_DATASOURCE_USERNAME: recoflow
+      SPRING_DATASOURCE_PASSWORD: recoflow
+      JWT_SECRET: c2VjcmV0LWtleS1mb3ItcmVjb2Zsb3ctc2Fhcy1kZW1v
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: recoflow-ui
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:8080
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

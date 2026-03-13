@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: recoflow-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/recoflow}
+    username: ${SPRING_DATASOURCE_USERNAME:recoflow}
+    password: ${SPRING_DATASOURCE_PASSWORD:recoflow}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+    open-in-view: false  # ← add this to silence the warning
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # baseline-on-migrate: true  ← remove unless you need it
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+jwt:
+  secret: ${JWT_SECRET:c2VjcmV0LWtleS1mb3ItcmVjb2Zsb3ctc2Fhcy1kZW1v}
+  expiration: 3600000
+  refresh-expiration: 86400000
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.recoflow: DEBUG
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always

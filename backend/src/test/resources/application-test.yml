@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/recoflow_test}
+    username: ${SPRING_DATASOURCE_USERNAME:recoflow}
+    password: ${SPRING_DATASOURCE_PASSWORD:recoflow}
+  jpa:
+    show-sql: false
+  flyway:
+    enabled: true
+    clean-on-validation-error: true
+
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LWZvci1jaS10ZXN0aW5n
+  expiration: 3600000
+
+logging:
+  level:
+    com.recoflow: WARN
+    org.springframework: WARN
