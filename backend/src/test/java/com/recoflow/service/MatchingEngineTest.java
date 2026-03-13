@@ -46,7 +46,7 @@ class MatchingEngineTest {
         inv.setPaidAmount(BigDecimal.ZERO);
         inv.setStatus(InvoiceStatus.SENT);
         inv.setCustomer(c);
-        inv.setItems(List.of());
+        inv.setItems(new ArrayList<>());
         return inv;
     }
 
