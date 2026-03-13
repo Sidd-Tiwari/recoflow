@@ -26,3 +26,9 @@ Thumbs.db
 
 # Docker volumes
 pgdata/
+
+
+# Logs
+*.log
+api_logs.txt
+db_logs.txt
