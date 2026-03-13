@@ -13,12 +13,12 @@ jobs:
     services:
       postgres:
         image: postgres:16
+        ports:
+          - 5432:5432
         env:
           POSTGRES_USER: recoflow
           POSTGRES_PASSWORD: recoflow
           POSTGRES_DB: recoflow_test
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U recoflow -d recoflow_test"
           --health-interval 10s
@@ -32,43 +32,64 @@ jobs:
       JWT_SECRET: test-secret-for-ci
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      # -------------------
+      # Checkout code
+      # -------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    # -------------------
-    # Setup Node.js
-    # -------------------
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: 'npm'
+      # -------------------
+      # Setup Node.js
+      # -------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
 
-    - name: Install frontend dependencies
-      working-directory: frontend
-      run: npm install
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
 
-    - name: Run frontend build
-      working-directory: frontend
-      run: npm run build
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
 
-    # -------------------
-    # Setup Java 21
-    # -------------------
-    - name: Setup Java
-      uses: actions/setup-java@v3
-      with:
-        distribution: temurin
-        java-version: 21
+      # -------------------
+      # Setup Java
+      # -------------------
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 21
 
-    # -------------------
-    # Make Maven wrapper executable
-    # -------------------
-    - name: Make mvnw executable
-      run: chmod +x mvnw
+      # -------------------
+      # Wait for PostgreSQL
+      # -------------------
+      - name: Wait for PostgreSQL
+        run: |
+          echo "Waiting for PostgreSQL to start..."
+          for i in {1..15}; do
+            pg_isready -h localhost -p 5432 -U recoflow -d recoflow_test && break
+            sleep 2
+          done
 
-    # -------------------
-    # Build and test backend
-    # -------------------
-    - name: Build backend & run tests
-      run: ./mvnw verify -P test
+      # -------------------
+      # Cache Maven dependencies
+      # -------------------
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      # -------------------
+      # Build backend & run tests
+      # -------------------
+      - name: Build backend & run tests
+        run: |
+          chmod +x mvnw
+          ./mvnw verify -P test
