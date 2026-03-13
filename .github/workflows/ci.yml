@@ -90,6 +90,7 @@ jobs:
       # Build backend & run tests
       # -------------------
       - name: Build backend & run tests
+        working-directory: backend
         run: |
           chmod +x mvnw
           ./mvnw verify -P test
