@@ -2,65 +2,73 @@ name: RecoFlow CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
-  backend-test:
-    name: Backend Tests
+  build:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: recoflow_test
           POSTGRES_USER: recoflow
           POSTGRES_PASSWORD: recoflow
-        ports: ['5432:5432']
+          POSTGRES_DB: recoflow_test
+        ports:
+          - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U recoflow -d recoflow_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/recoflow_test
+      SPRING_DATASOURCE_USERNAME: recoflow
+      SPRING_DATASOURCE_PASSWORD: recoflow
+      JWT_SECRET: test-secret-for-ci
+
     steps:
-      - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
+    # -------------------
+    # Setup Node.js
+    # -------------------
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
 
-      - name: Build and Test
-        working-directory: backend
-        run: ./mvnw verify -P test
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/recoflow_test
-          SPRING_DATASOURCE_USERNAME: recoflow
-          SPRING_DATASOURCE_PASSWORD: recoflow
-          JWT_SECRET: dGVzdC1zZWNyZXQta2V5LWZvci1jaS10ZXN0aW5n
+    - name: Install frontend dependencies
+      working-directory: frontend
+      run: npm install
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: backend/target/site/jacoco/
+    - name: Run frontend build
+      working-directory: frontend
+      run: npm run build
 
-  frontend-build:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      - name: Install and build
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run build
+    # -------------------
+    # Setup Java 21
+    # -------------------
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: 21
+
+    # -------------------
+    # Make Maven wrapper executable
+    # -------------------
+    - name: Make mvnw executable
+      run: chmod +x mvnw
+
+    # -------------------
+    # Build and test backend
+    # -------------------
+    - name: Build backend & run tests
+      run: ./mvnw verify -P test
